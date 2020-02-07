@@ -11,6 +11,7 @@ $dbUser = "pokemon";
 $dbPassword = "";
 $dbPort = null;
 $dbSource = "";
+$discord = "";
 $db;
 $dbPokestopsData = array();
 
@@ -57,10 +58,11 @@ if($mismatch) {
 }
 
 if($diff) {
-    echo "A diff between saved pokestop-data and database pokestop-data was found. Quests may have been reset!\n";
+    $msg = "A diff between saved pokestop-data and database pokestop-data was found. Quests may have been reset!\n";
+    echo $msg;
+    send_discord($msg);
     save_quest_data($db);
     exit(0);
-    //todo: webhook ?
 }
 
 $enoughTimePassed = (time()-$lastSaved) > (3600*1);
@@ -71,7 +73,9 @@ if(!$diff && $enoughTimePassed) {
         echo "Deleting quest data for pokestop {$pokestop->pokestop_id}\n";
         delete_pokestop_quest_info($db, $pokestop->pokestop_id);
     }
-    exit("We didnt find any mismatch, or a diff. And time have passed, so we reset the quests in the database to check again.\n");
+    $msg = "We didnt find any mismatch, or a diff. And time have passed, so we reset the quests in the database to check again.\n";
+    send_discord($msg);
+    exit($msg);
 }
 
 $lastcheck = time()-$lastSaved;
@@ -150,12 +154,12 @@ function connect_to_db(&$_db) {
 }
 
 function parse_mad_config_for_db(&$path) {
-    GLOBAL $dbHost, $dbUser, $dbPassword, $dbName, $dbPort, $dbSource;
+    GLOBAL $dbHost, $dbUser, $dbPassword, $dbName, $dbPort, $dbSource, $discord;
     $txt = file_get_contents($path);
     //grab all lines starting with db* and extract any text found on other side of : except whitespace
     //trim removes any "' that might be around the value
     $trimPattern = "\"\'";
-    preg_match_all('/^(db.+):\s*(\S+)/m', $txt, $matches, PREG_SET_ORDER);
+    preg_match_all('/^(\S+): (\S+)/m', $txt, $matches, PREG_SET_ORDER);
     foreach($matches as $match) {
         switch($match[1]) {
             case "dbip":
@@ -173,6 +177,9 @@ function parse_mad_config_for_db(&$path) {
             case "dbport":
                 $dbPort = trim($match[2], $trimPattern);
                 break;
+            case "discordhookurl":
+                $discord = trim($match[2], $trimPattern);
+                break;
         }
     }
 
@@ -180,6 +187,19 @@ function parse_mad_config_for_db(&$path) {
     if(!empty($dbPort)) {
         $dbSource .= ";port={$dbPort}";
     }
+}
+
+function send_discord($msg) {
+    GLOBAL $discord;
+
+    $ch = curl_init($discord);
+    curl_setopt( $ch, CURLOPT_HTTPHEADER, array('Content-type: application/json'));
+    curl_setopt( $ch, CURLOPT_POST, 1);
+    curl_setopt( $ch, CURLOPT_POSTFIELDS, json_encode(array("content" => $msg)));
+    curl_setopt( $ch, CURLOPT_FOLLOWLOCATION, 1);
+    curl_setopt( $ch, CURLOPT_HEADER, 0);
+    curl_setopt( $ch, CURLOPT_RETURNTRANSFER, 1);
+    $out = curl_exec($ch);
 }
 
 ?>

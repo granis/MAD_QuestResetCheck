@@ -38,4 +38,4 @@ The above log shows that the script waited until ~3600s had passed, it then rese
 until the MAD-walker populated the quest-data again.
 
 #### What happens when a change/diff is detected?
-Nothing, so far! TODO webhook/external script execution!
+A message is sent with discord-webhook, and echoed to terminal.

@@ -3,3 +3,4 @@ dbip: localhost                      # IP adress or hostname of the mysql server
 dbusername: pokemon                # Username of database
 dbpassword: pokemon                # Password of database
 dbname: pokemon                    # Name of the database
+discordhookurl: https://discord.sample/chan/ident        #discord webhook url
